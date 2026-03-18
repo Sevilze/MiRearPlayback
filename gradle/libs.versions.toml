@@ -1,0 +1,20 @@
+[versions]
+agp = "9.1.0"
+android-compileSdk = "35"
+android-minSdk = "30"
+android-targetSdk = "35"
+androidx-appcompat = "1.7.0"
+androidx-core = "1.13.1"
+kotlin = "2.3.10"
+material = "1.12.0"
+shizuku = "13.1.5"
+
+[libraries]
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
+androidx-core = { module = "androidx.core:core", version.ref = "androidx-core" }
+google-material = { module = "com.google.android.material:material", version.ref = "material" }
+shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
+shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
+
+[plugins]
+androidApplication = { id = "com.android.application", version.ref = "agp" }
