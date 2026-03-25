@@ -40,7 +40,7 @@ private val DarkColors =
         inverseSurface = Color(0xFFE3E1EC),
         inverseOnSurface = Color(0xFF2F3036),
         inversePrimary = Color(0xFF4B56A9),
-        surfaceTint = Color(0xFFBBC3FF),
+        surfaceTint = Color(0xFFBBC3FF)
     )
 
 private val LightColors =
@@ -72,13 +72,13 @@ private val LightColors =
         inverseSurface = Color(0xFF303036),
         inverseOnSurface = Color(0xFFF2F0FA),
         inversePrimary = Color(0xFFBBC3FF),
-        surfaceTint = Color(0xFF4B56A9),
+        surfaceTint = Color(0xFF4B56A9)
     )
 
 @Composable
 fun MiRearPlaybackTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
+    content: @Composable () -> Unit
 ) {
     val colorScheme =
         when {
@@ -98,6 +98,6 @@ fun MiRearPlaybackTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        content = content,
+        content = content
     )
 }

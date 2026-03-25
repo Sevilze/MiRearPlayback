@@ -13,12 +13,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
-    name = "mirearplayback_settings",
+    name = "mirearplayback_settings"
 )
 
-class MediaRepository(
-    context: Context,
-) {
+class MediaRepository(context: Context) {
     private val dataStore = context.applicationContext.dataStore
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -108,10 +106,7 @@ class MediaRepository(
         }
     }
 
-    suspend fun moveItem(
-        fromIndex: Int,
-        toIndex: Int,
-    ) {
+    suspend fun moveItem(fromIndex: Int, toIndex: Int) {
         dataStore.edit { prefs ->
             val existing =
                 try {
@@ -156,10 +151,7 @@ class MediaRepository(
         }
     }
 
-    suspend fun updateMediaItemCrop(
-        index: Int,
-        cropRegion: CropRegion,
-    ) {
+    suspend fun updateMediaItemCrop(index: Int, cropRegion: CropRegion) {
         dataStore.edit { prefs ->
             val existing =
                 try {

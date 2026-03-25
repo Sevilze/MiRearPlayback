@@ -1,12 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MiRearPlayback</string>
-    <string name="app_subtitle">Video wallpaper for Xiaomi rear screen</string>
-    <string name="status_label">Status</string>
-    <string name="status_checking">Checking Shizuku...</string>
-    <string name="video_label">Video</string>
-    <string name="no_video_selected">No video selected</string>
-    <string name="select_video">Select Video</string>
-    <string name="play">Play</string>
-    <string name="stop">Stop</string>
 </resources>

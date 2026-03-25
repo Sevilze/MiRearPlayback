@@ -5,18 +5,17 @@ import kotlinx.serialization.Serializable
 enum class MediaType {
     IMAGE,
     GIF,
-    VIDEO,
+    VIDEO
     ;
 
     companion object {
-        fun fromMimeType(mimeType: String?): MediaType =
-            when {
-                mimeType == null -> IMAGE
-                mimeType.startsWith("video/") -> VIDEO
-                mimeType == "image/gif" -> GIF
-                mimeType.startsWith("image/") -> IMAGE
-                else -> IMAGE
-            }
+        fun fromMimeType(mimeType: String?): MediaType = when {
+            mimeType == null -> IMAGE
+            mimeType.startsWith("video/") -> VIDEO
+            mimeType == "image/gif" -> GIF
+            mimeType.startsWith("image/") -> IMAGE
+            else -> IMAGE
+        }
     }
 }
 
@@ -25,5 +24,5 @@ data class MediaItem(
     val uri: String,
     val type: MediaType,
     val displayName: String = "",
-    val cropRegion: CropRegion = CropRegion(),
+    val cropRegion: CropRegion = CropRegion()
 )
