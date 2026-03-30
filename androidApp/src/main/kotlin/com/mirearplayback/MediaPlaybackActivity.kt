@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.drawable.Animatable
 import android.media.MediaPlayer
 import android.net.Uri
@@ -286,7 +287,7 @@ class MediaPlaybackActivity :
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         Gravity.CENTER
                     )
-                scaleType = ImageView.ScaleType.CENTER_CROP
+                scaleType = ImageView.ScaleType.MATRIX
             }
         container?.addView(imageView)
         applyCropTransform(imageView)
@@ -325,6 +326,47 @@ class MediaPlaybackActivity :
         val view = targetView ?: return
         val region = cropRegion
 
+        if (view is ImageView) {
+            applyImageMatrixCrop(view, region)
+        } else {
+            applyViewScaleCrop(view, region)
+        }
+    }
+
+    private fun applyImageMatrixCrop(iv: ImageView, region: CropRegion) {
+        iv.post {
+            val viewW = iv.width.toFloat()
+            val viewH = iv.height.toFloat()
+            val drawable = iv.drawable
+            if (viewW <= 0f || viewH <= 0f || drawable == null) return@post
+
+            val imgW = drawable.intrinsicWidth.toFloat()
+            val imgH = drawable.intrinsicHeight.toFloat()
+            if (imgW <= 0f || imgH <= 0f) return@post
+
+            val cropPixW = (region.right - region.left).coerceAtLeast(0.05f) * imgW
+            val cropPixH = (region.bottom - region.top).coerceAtLeast(0.05f) * imgH
+            val cropCenterPixX = (region.left + region.right) / 2f * imgW
+            val cropCenterPixY = (region.top + region.bottom) / 2f * imgH
+
+            val scale = maxOf(viewW / cropPixW, viewH / cropPixH)
+            val matrix = Matrix()
+            matrix.setScale(scale, scale)
+            matrix.postTranslate(
+                viewW / 2f - cropCenterPixX * scale,
+                viewH / 2f - cropCenterPixY * scale
+            )
+
+            iv.scaleType = ImageView.ScaleType.MATRIX
+            iv.imageMatrix = matrix
+            iv.scaleX = 1f
+            iv.scaleY = 1f
+            iv.translationX = 0f
+            iv.translationY = 0f
+        }
+    }
+
+    private fun applyViewScaleCrop(view: View, region: CropRegion) {
         view.post {
             val width = view.width.toFloat()
             val height = view.height.toFloat()

@@ -557,7 +557,34 @@ private fun CarouselThumbnail(
     imageRequest: ImageRequest,
     modifier: Modifier = Modifier
 ) {
-    if (item.type == MediaType.GIF) {
+    if (!cropRegion.isFullFrame) {
+        val context = LocalContext.current
+        val croppedBitmap by produceState<ImageBitmap?>(
+            initialValue = null,
+            key1 = item.uri,
+            key2 = cropRegion
+        ) {
+            value = withContext(Dispatchers.IO) {
+                loadCroppedBitmap(context, Uri.parse(item.uri), item.type, cropRegion)
+            }
+        }
+
+        if (croppedBitmap != null) {
+            Image(
+                bitmap = croppedBitmap!!,
+                contentDescription = item.displayName,
+                contentScale = ContentScale.Crop,
+                modifier = modifier
+            )
+        } else {
+            AsyncImage(
+                model = imageRequest,
+                contentDescription = item.displayName,
+                contentScale = ContentScale.Crop,
+                modifier = modifier
+            )
+        }
+    } else if (item.type == MediaType.GIF) {
         val context = LocalContext.current
         val previewBitmap by produceState<ImageBitmap?>(
             initialValue = null,
@@ -578,14 +605,14 @@ private fun CarouselThumbnail(
                 bitmap = previewBitmap!!,
                 contentDescription = item.displayName,
                 contentScale = ContentScale.Crop,
-                modifier = modifier.applyCropRegion(cropRegion)
+                modifier = modifier
             )
         } else {
             AsyncImage(
                 model = imageRequest,
                 contentDescription = item.displayName,
                 contentScale = ContentScale.Crop,
-                modifier = modifier.applyCropRegion(cropRegion)
+                modifier = modifier
             )
         }
     } else {
@@ -593,9 +620,76 @@ private fun CarouselThumbnail(
             model = imageRequest,
             contentDescription = item.displayName,
             contentScale = ContentScale.Crop,
-            modifier = modifier.applyCropRegion(cropRegion)
+            modifier = modifier
         )
     }
+}
+
+private fun loadCroppedBitmap(
+    context: android.content.Context,
+    uri: Uri,
+    type: MediaType,
+    crop: CropRegion
+): ImageBitmap? {
+    return try {
+        if (type == MediaType.VIDEO) {
+            val retriever = android.media.MediaMetadataRetriever()
+            retriever.setDataSource(context, uri)
+            val frame = retriever.getFrameAtTime(0) ?: run {
+                retriever.release()
+                return null
+            }
+            retriever.release()
+            cropBitmap(frame, crop)?.asImageBitmap()
+        } else {
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, options)
+            }
+            val imgW = options.outWidth
+            val imgH = options.outHeight
+            if (imgW <= 0 || imgH <= 0) return null
+
+            val regionLeft = (crop.left * imgW).toInt().coerceIn(0, imgW - 1)
+            val regionTop = (crop.top * imgH).toInt().coerceIn(0, imgH - 1)
+            val regionRight = (crop.right * imgW).toInt().coerceIn(regionLeft + 1, imgW)
+            val regionBottom = (crop.bottom * imgH).toInt().coerceIn(regionTop + 1, imgH)
+            val regionW = regionRight - regionLeft
+            val regionH = regionBottom - regionTop
+
+            val sampleSize = calculateThumbnailSampleSize(regionW, regionH, 512, 512)
+            val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+
+            val decoder = context.contentResolver.openInputStream(uri)?.use { input ->
+                android.graphics.BitmapRegionDecoder.newInstance(input, false)
+            } ?: return null
+
+            val rect = android.graphics.Rect(regionLeft, regionTop, regionRight, regionBottom)
+            decoder.decodeRegion(rect, decodeOptions)?.asImageBitmap()
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
+
+private fun cropBitmap(bitmap: android.graphics.Bitmap, crop: CropRegion): android.graphics.Bitmap? {
+    val x = (crop.left * bitmap.width).toInt().coerceIn(0, bitmap.width - 1)
+    val y = (crop.top * bitmap.height).toInt().coerceIn(0, bitmap.height - 1)
+    val w = ((crop.right - crop.left) * bitmap.width).toInt().coerceIn(1, bitmap.width - x)
+    val h = ((crop.bottom - crop.top) * bitmap.height).toInt().coerceIn(1, bitmap.height - y)
+    return android.graphics.Bitmap.createBitmap(bitmap, x, y, w, h)
+}
+
+private fun calculateThumbnailSampleSize(srcW: Int, srcH: Int, targetW: Int, targetH: Int): Int {
+    var sample = 1
+    if (srcW > targetW || srcH > targetH) {
+        val halfW = srcW / 2
+        val halfH = srcH / 2
+        while (halfW / sample >= targetW && halfH / sample >= targetH) {
+            sample *= 2
+        }
+    }
+    return sample
 }
 
 private fun centeredItemIndex(listState: LazyListState): Int? {
@@ -607,26 +701,6 @@ private fun centeredItemIndex(listState: LazyListState): Int? {
     return visibleItems.minByOrNull { itemInfo ->
         abs((itemInfo.offset + itemInfo.size / 2) - viewportCenter)
     }?.index
-}
-
-private fun Modifier.applyCropRegion(cropRegion: CropRegion): Modifier = graphicsLayer {
-    val cropWidth = (cropRegion.right - cropRegion.left).coerceAtLeast(0.05f)
-    val cropHeight = (cropRegion.bottom - cropRegion.top).coerceAtLeast(0.05f)
-
-    if (cropRegion.isFullFrame) {
-        scaleX = 1f
-        scaleY = 1f
-        translationX = 0f
-        translationY = 0f
-        return@graphicsLayer
-    }
-
-    val cropCenterX = (cropRegion.left + cropRegion.right) / 2f
-    val cropCenterY = (cropRegion.top + cropRegion.bottom) / 2f
-    scaleX = 1f / cropWidth
-    scaleY = 1f / cropHeight
-    translationX = (0.5f - cropCenterX) * size.width * scaleX
-    translationY = (0.5f - cropCenterY) * size.height * scaleY
 }
 
 private fun typeIcon(type: MediaType): ImageVector = when (type) {
